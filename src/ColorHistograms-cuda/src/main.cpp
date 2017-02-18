@@ -97,6 +97,9 @@ int main (int argc, char* argv[]) {
 
 	png_infop info;
 
+    StopWatchInterface *h_timer = NULL;
+    unsigned int num_runs = 1;
+
 	if(argc < 2) {
 		printf("Must include file name to process. `%s <file_name>`\n", argv[0]);
 		return -1;
@@ -112,10 +115,24 @@ int main (int argc, char* argv[]) {
 
 	printf("Image has height %lu and width %lu\n", info->width, info->width);
 
+    sdkCreateTimer(&h_timer);
+
 	// CPU
 	printf("CPU: \n");
     cpu_hist = (uint* )calloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), sizeof(uint));
+
+    sdkResetTimer(&h_timer);
+    sdkStartTimer(&h_timer);
+
     run_cpu(h_pixels, info->width, info->width, cpu_hist);
+    sdkStopTimer(&h_timer);
+    double cpu_avg_secs = 1.0e-3 * (double)sdkGetTimerValue(&h_timer) / (double)num_runs;
+
+
+    printf("run_cpu() time (average) : %.5f sec, %.4f MB/sec\n\n", cpu_avg_secs, ((double)number_of_bytes * 1.0e-6) / cpu_avg_secs);
+
+
+
     print_histogram(cpu_hist);
 
 
@@ -128,7 +145,19 @@ int main (int argc, char* argv[]) {
 
     // Run histogram computing
     printf("Computing histogram\n");
+
+    cudaDeviceSynchronize();
+    sdkResetTimer(&h_timer);
+    sdkStartTimer(&h_timer);
+
     run_gmem_atomics(d_pixels, info->width, info->width, d_hist);
+
+    cudaDeviceSynchronize();
+    sdkStopTimer(&h_timer);
+    double d_avg_secs = 1.0e-3 * (double)sdkGetTimerValue(&h_timer) / (double)num_runs;
+
+
+    printf("run_gmem_atomics() time (average) : %.5f sec, %.4f MB/sec\n\n", d_avg_secs, ((double)number_of_bytes * 1.0e-6) / d_avg_secs);
 
     // Copy result back to CPU
     printf("Copying result to CPU\n");
