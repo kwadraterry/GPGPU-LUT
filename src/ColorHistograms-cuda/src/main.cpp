@@ -37,10 +37,9 @@ void probe_image(PixelType* image, png_infop info) {
 
 void print_histogram(unsigned int* hist) {
     printf("Histogram:\n");
-    uint k_bin = 256 / NUM_BINS;
     printf("########### ");
     for (uint bin = 0; bin < NUM_BINS; bin++) {
-       printf("[%3u-%3u]", bin * k_bin, (bin + 1) * k_bin - 1);
+       printf("[%3u-%3u]", bin * K_BIN, (bin + 1) * K_BIN - 1);
 	}
     printf("\n");
     for (uint ch = 0; ch < ACTIVE_CHANNELS; ch++) {

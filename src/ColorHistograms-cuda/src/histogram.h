@@ -29,6 +29,8 @@
 #define HISTOGRAM_H
 
 #define NUM_BINS 16
+#define K_BIN (256 / NUM_BINS)
+
 #define ACTIVE_CHANNELS 4
 #define NUM_PARTS 64
 #define PixelType uchar4

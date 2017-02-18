@@ -8,7 +8,7 @@ __device__ __forceinline__ void DecodePixel(uchar4 pixel, unsigned int (&bins)[A
 
 	#pragma unroll
 	for (int CHANNEL = 0; CHANNEL < ACTIVE_CHANNELS; ++CHANNEL)
-		bins[CHANNEL] = (unsigned int) (samples[CHANNEL]);
+		bins[CHANNEL] = (unsigned int) (samples[CHANNEL]) / K_BIN;
 }
 
 // First-pass histogram kernel (binning into privatized counters)
