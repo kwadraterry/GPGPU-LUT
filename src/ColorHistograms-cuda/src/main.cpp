@@ -13,7 +13,7 @@
 #include <png.h>
 
 #include "imageio.h"
-#include "histogram.h"
+#include "histogram_gpu.h"
 
 void probe_image(PixelType* image, png_infop info) {
 	/**
