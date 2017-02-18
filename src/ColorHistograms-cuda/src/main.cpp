@@ -35,6 +35,24 @@ void probe_image(PixelType* image, png_infop info) {
 }
 
 
+void print_histogram(unsigned int* hist) {
+    printf("Histogram:\n");
+    uint k_bin = 256 / NUM_BINS;
+    printf("########### ");
+    for (uint bin = 0; bin < NUM_BINS; bin++) {
+       printf("[%3u-%3u]", bin * k_bin, (bin + 1) * k_bin - 1);
+	}
+    printf("\n");
+    for (uint ch = 0; ch < ACTIVE_CHANNELS; ch++) {
+        printf("Channel %u: ", ch + 1);
+        for (uint bin = 0; bin < NUM_BINS; bin++) {
+            printf("%8u ", hist[ch * NUM_BINS + bin]);
+        }
+        printf("\n");
+    }
+}
+
+
 int main (int argc, char* argv[]) {
 	PixelType* h_pixels;
     PixelType* d_pixels;
@@ -73,14 +91,7 @@ int main (int argc, char* argv[]) {
     checkCudaErrors(cudaMemcpy(h_hist, d_hist, ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), cudaMemcpyDeviceToHost));
 
     // Print results.
-    printf("Histogram:\n");
-    for (uint ch = 0; ch < ACTIVE_CHANNELS; ch++) {
-    	printf("Channel %u:\n", ch + 1);
-    	for (uint bin = 0; bin < NUM_BINS; bin++) {
-        	printf("%5u ", h_hist[ch * NUM_BINS + bin]);
-    	}
-    	printf("\n");
-    }
+    print_histogram(h_hist);
 
     checkCudaErrors(cudaFree(d_pixels));
     checkCudaErrors(cudaFree(d_hist));
