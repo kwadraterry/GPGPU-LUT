@@ -37,23 +37,6 @@
 
 __device__ __forceinline__ void DecodePixel(uchar4 pixel, unsigned int (&bins)[ACTIVE_CHANNELS]);
 
-__global__ void histogram_smem_atomics(
-	const PixelType *in,
-	int width,
-	int height,
-	unsigned int *out);
-
-__global__ void histogram_smem_accum(
-	const unsigned int *in,
-	int n,
-	unsigned int *out);
-
-void run_smem_atomics(
-	PixelType *d_image,
-	int width,
-	int height,
-	unsigned int *d_hist);
-
 __global__ void histogram_gmem_atomics(
 	const PixelType *in,
 	int width,
