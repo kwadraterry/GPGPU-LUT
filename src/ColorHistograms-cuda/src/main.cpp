@@ -88,6 +88,13 @@ void print_histogram(unsigned int* hist) {
 }
 
 
+unsigned int compare_histograms(const unsigned int* hist_a,
+		const unsigned int* hist_b, unsigned int n) {
+	while ( --n > 0 && hist_a[n] == hist_b[n]);
+	return n;
+}
+
+
 int main (int argc, char* argv[]) {
 	PixelType* h_pixels;
     PixelType* d_pixels;
@@ -167,6 +174,13 @@ int main (int argc, char* argv[]) {
     // Print results.
     print_histogram(h_hist);
 
+    unsigned int hist_ne = compare_histograms(cpu_hist, h_hist, ACTIVE_CHANNELS * NUM_BINS);
+    if (hists_ne) {
+    	printf("Histograms differ!\nChannel %u, bin %u:\nCPU histogram: %3u\nGPU histogram: %3u\n",
+    			hist_ne / NUM_BINS, hist_ne % NUM_BINS, cpu_hist[hist_ne], h_hist[hist_ne]);
+    }
+
+    printf("Freeing the memory.");
     checkCudaErrors(cudaFree(d_pixels));
     checkCudaErrors(cudaFree(d_hist));
     free(h_pixels);
