@@ -113,7 +113,7 @@ int main (int argc, char* argv[]) {
 
 	size_t number_of_bytes = sizeof(uchar4) * info->width * info->height;
 
-	printf("Image has height %lu and width %lu\n", info->width, info->width);
+	printf("Image has height %lu and width %lu\n", info->height, info->width);
 
     sdkCreateTimer(&h_timer);
 
@@ -124,7 +124,7 @@ int main (int argc, char* argv[]) {
     sdkResetTimer(&h_timer);
     sdkStartTimer(&h_timer);
 
-    run_cpu(h_pixels, info->width, info->width, cpu_hist);
+    run_cpu(h_pixels, info->width, info->height, cpu_hist);
     sdkStopTimer(&h_timer);
     double cpu_avg_secs = 1.0e-3 * (double)sdkGetTimerValue(&h_timer) / (double)num_runs;
 
@@ -150,7 +150,7 @@ int main (int argc, char* argv[]) {
     sdkResetTimer(&h_timer);
     sdkStartTimer(&h_timer);
 
-    run_gmem_atomics(d_pixels, info->width, info->width, d_hist);
+    run_gmem_atomics(d_pixels, info->width, info->height, d_hist);
 
     cudaDeviceSynchronize();
     sdkStopTimer(&h_timer);
