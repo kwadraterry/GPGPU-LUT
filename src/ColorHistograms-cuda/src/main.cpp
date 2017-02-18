@@ -46,13 +46,13 @@
 #include "histogram_gpu.h"
 #include "histogram_cpu.h"
 
-void probe_image(PixelType* image, png_infop info) {
+void probe_image(PixelType* image, png_infop info, unsigned int n) {
 	/**
 	 * Debug: print every 10th pixel.
 	 */
 	PixelType pixel;
-	for (uint y = 0; y < info->height; y+=10){
-		for (uint x = 0; x < info->width; x+=10){
+	for (uint y = 0; y < info->height; y += n){
+		for (uint x = 0; x < info->width; x += n){
 			pixel = image[y * info->width + x];
 			unsigned char* samples = reinterpret_cast<unsigned char*>(&pixel);
 
