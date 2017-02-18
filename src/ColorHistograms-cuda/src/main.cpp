@@ -62,6 +62,7 @@ int main (int argc, char* argv[]) {
     PixelType* d_pixels;
     unsigned int* d_hist;
     unsigned int* h_hist;
+    unsigned int* cpu_hist;
 
 	png_infop info;
 
@@ -70,6 +71,7 @@ int main (int argc, char* argv[]) {
 		return -1;
 	}
 
+    // Read image.
 	if(read_png(argv[1], &info, &h_pixels) == PNG_FAILURE) {
 		printf("Error reading file (%s).\n", argv[1]);
 		return -1;
@@ -81,16 +83,18 @@ int main (int argc, char* argv[]) {
 
 
     // Copy data to GPU
-    printf("...allocating GPU memory and copying input data\n\n");
+	printf("GPU: \n");
+    printf("Allocating GPU memory and copying input data\n");
     checkCudaErrors(cudaMalloc((void **)&d_pixels, number_of_bytes));
     checkCudaErrors(cudaMalloc((void **)&d_hist, ACTIVE_CHANNELS * NUM_BINS * sizeof(uint)));
     checkCudaErrors(cudaMemcpy(d_pixels, h_pixels, number_of_bytes, cudaMemcpyHostToDevice));
 
     // Run histogram computing
+    printf("Computing histogram\n");
     run_gmem_atomics(d_pixels, info->width, info->width, d_hist);
-    printf("Done.\n");
 
     // Copy result back to CPU
+    printf("Copying result to CPU\n");
     h_hist = (uint* )malloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint));
     checkCudaErrors(cudaMemcpy(h_hist, d_hist, ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), cudaMemcpyDeviceToHost));
 
