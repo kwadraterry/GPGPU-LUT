@@ -14,6 +14,7 @@
 
 #include "imageio.h"
 #include "histogram_gpu.h"
+#include "histogram_cpu.h"
 
 void probe_image(PixelType* image, png_infop info) {
 	/**
@@ -81,6 +82,12 @@ int main (int argc, char* argv[]) {
 
 	printf("Image has height %lu and width %lu\n", info->width, info->width);
 
+	// CPU
+	printf("CPU: \n");
+    cpu_hist = (uint* )calloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), sizeof(uint));
+    run_cpu(h_pixels, info->width, info->width, cpu_hist);
+    print_histogram(cpu_hist);
+
 
     // Copy data to GPU
 	printf("GPU: \n");
@@ -105,5 +112,6 @@ int main (int argc, char* argv[]) {
     checkCudaErrors(cudaFree(d_hist));
     free(h_pixels);
     free(h_hist);
+    free(cpu_hist);
 	return 0;
 }
