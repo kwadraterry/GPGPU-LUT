@@ -15,8 +15,10 @@
 #include "imageio.h"
 #include "histogram.h"
 
-// Debug: Print pixel values.
 void probe_image(PixelType* image, png_infop info) {
+	/**
+	 * Debug: print every 10th pixel.
+	 */
 	PixelType pixel;
 	for (uint y = 0; y < info->height; y+=10){
 		for (uint x = 0; x < info->width; x+=10){
@@ -36,6 +38,9 @@ void probe_image(PixelType* image, png_infop info) {
 
 
 void print_histogram(unsigned int* hist) {
+	/**
+	 * Print histogram to the stdout.
+	 */
     printf("Histogram:\n");
     printf("########### ");
     for (uint bin = 0; bin < NUM_BINS; bin++) {
