@@ -43,6 +43,14 @@ __global__ void histogram_gmem_accum(
 	int n,
 	unsigned int *out);
 
+__global__ void histogram_gmem_atomics1(
+        const PixelType *in,
+        int width,
+        int height,
+        unsigned int *out,
+        int dev_id,
+        int dev_count);
+
 void run_gmem_atomics(
 	PixelType *d_image,
 	int width,
@@ -57,10 +65,5 @@ void run_multigpu(
     int device_id,
     int device_count);
 
-void run_multigpu1(
-    PixelType *h_image,
-    int width,
-    int height,
-    unsigned int *h_hist);
 
 #endif
