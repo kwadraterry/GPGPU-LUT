@@ -371,13 +371,13 @@ int main (int argc, char* argv[]) {
     	if (verbose) {printf(" [Device 0 (default)]");};
 		checkCudaErrors(cudaFree(d_pixels));
 		checkCudaErrors(cudaFree(d_hist));
+        free(h_hist);
     }
 
     if (verbose) {printf(" [CPU]");};
     free(h_pixels);
     if (test_cpu) {
     	free(cpu_hist);
-        free(h_hist);
     }
     if (verbose) {printf(" ...Done\n");};
 	return re;
