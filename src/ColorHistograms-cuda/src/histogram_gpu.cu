@@ -203,31 +203,6 @@ __global__ void histogram_gmem_atomics1(
 	}
 }
 
-__global__ void histogram_gmem_accum1(
-    const unsigned int *in,
-    int n,
-    unsigned int *out,
-    int dev_id,
-    int dev_count)
-{
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    // Check if we are on "our" channel.
-    // TODO: I fear it might be not really faster than copying all of them.
-    // Maybe remove that check or, even better, all this function and use histogram_gmem_accum instead?
-    int ch = i / NUM_BINS;
-    if (ch % dev_count != dev_id)
-    	return;
-    if (i > ACTIVE_CHANNELS * NUM_BINS)
-        return; // out of range
-
-    unsigned int total = 0;
-    for (int j = 0; j < n; j++) {
-        total += in[i + NUM_PARTS * j];
-    }
-
-    out[i] = total;
-}
-
 
 void run_multigpu(
     PixelType *d_image,
@@ -244,7 +219,7 @@ void run_multigpu(
 	// Allocate partial histogram.
 	// Actually, we need less memory (only the channels assigned to the device),
 	// but for the sake of simplicity, let us have the "full" histogram for every
-	// device.
+	// device (still counting only relevant bits).
 	// TODO: Memory-efficient way.
 	unsigned int *d_part_hist;
 	cudaMalloc(&d_part_hist, total_blocks * NUM_PARTS * sizeof(unsigned int));
@@ -261,12 +236,10 @@ void run_multigpu(
 		device_count
 		);
 
-	histogram_gmem_accum1<<<grid2, block2>>>(
+	histogram_gmem_accum<<<grid2, block2>>>(
 		d_part_hist,
 		total_blocks,
-		d_hist,
-		device_id,
-		device_count);
+		d_hist);
 
 
 	cudaFree(d_part_hist);
