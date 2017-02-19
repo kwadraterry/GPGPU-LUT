@@ -257,12 +257,21 @@ int main (int argc, char* argv[]) {
 	printf(" ...Done\n");
 
 	printf("Computing histogram...");
-	for (int dev_id = 0; dev_id < used_devices; dev_id++) {
-		cudaSetDevice(dev_id);
-		run_multigpu(d_pixels_m[dev_id], info->width, info->height, d_hist_m[dev_id], dev_id, used_devices);
-	    cudaDeviceSynchronize();
-	}
+    sdkResetTimer(&h_timer);
+    sdkStartTimer(&h_timer);
+    for (unsigned int i = 0; i < num_runs; i++) {
+		for (int dev_id = 0; dev_id < used_devices; dev_id++) {
+			cudaSetDevice(dev_id);
+			run_multigpu(d_pixels_m[dev_id], info->width, info->height, d_hist_m[dev_id], dev_id, used_devices);
+			cudaDeviceSynchronize();
+		}
+    }
+    sdkStopTimer(&h_timer);
 	printf("Done\n");
+    double mgpu_avg_secs = 1.0e-3 * (double)sdkGetTimerValue(&h_timer) / (double)num_runs;
+
+    printf("\nrun_multigpu() time (average from %u runs) : %.5f sec, %.4f MB/sec\n\n", num_runs, mgpu_avg_secs,
+    		((double)number_of_bytes * 1.0e-6) / mgpu_avg_secs);
 
     h_hist_m = (uint* )calloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), sizeof(uint));
 	printf("Copying histograms back to CPU...");
