@@ -260,8 +260,8 @@ int main (int argc, char* argv[]) {
 	for (int dev_id = 0; dev_id < used_devices; dev_id++) {
 		cudaSetDevice(dev_id);
 		run_multigpu(d_pixels_m[dev_id], info->width, info->height, d_hist_m[dev_id], dev_id, used_devices);
+	    cudaDeviceSynchronize();
 	}
-    cudaDeviceSynchronize();
 	printf("Done\n");
 
     h_hist_m = (uint* )calloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), sizeof(uint));

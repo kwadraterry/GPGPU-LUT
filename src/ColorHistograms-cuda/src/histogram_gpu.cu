@@ -116,24 +116,6 @@ __global__ void histogram_gmem_accum(
     out[i] = total;
 }
 
-
-__global__ void histogram_strips_accum(
-    const unsigned int *in,
-    int n_hists,
-    int hist_size,
-    unsigned int *out)
-{
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i > ACTIVE_CHANNELS * NUM_BINS)
-        return; // out of range
-
-    unsigned int total = 0;
-    for (int hist_id = 0; hist_id < n_hists; hist_id++)
-        total += in[hist_size * hist_id + i];
-
-    out[i] = total;
-}
-
 void run_gmem_atomics(
     PixelType *d_image,
     int width,
@@ -228,13 +210,20 @@ __global__ void histogram_gmem_accum1(
     int dev_id,
     int dev_count)
 {
-    int i = (blockIdx.x * blockDim.x + threadIdx.x) * dev_count + dev_id;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    // Check if we are on "our" channel.
+    // TODO: I fear it might be not really faster than copying all of them.
+    // Maybe remove that check or, even better, all this function and use histogram_gmem_accum instead?
+    int ch = i / NUM_BINS;
+    if (ch % dev_count != dev_id)
+    	return;
     if (i > ACTIVE_CHANNELS * NUM_BINS)
         return; // out of range
 
     unsigned int total = 0;
-    for (int j = 0; j < n; j++)
+    for (int j = 0; j < n; j++) {
         total += in[i + NUM_PARTS * j];
+    }
 
     out[i] = total;
 }
@@ -281,157 +270,5 @@ void run_multigpu(
 
 
 	cudaFree(d_part_hist);
-}
-
-
-void run_multigpu1(
-    PixelType *h_image,
-    int width,
-    int height,
-    unsigned int *h_hist)
-{
-	printf("run_multigpu\n");
-	int device_count = 0;
-	cudaError_t error_id = cudaGetDeviceCount(&device_count);
-	printf("Found %d cuda-compatible devices.\n", device_count);
-    PixelType* d_pixels[device_count];
-    unsigned int* d_hist[device_count];
-	unsigned int* d_part_hist[device_count];
-	unsigned int* d_all_hists;
-	unsigned int* d_accumulated_hists;
-
-	// TODO: Check how that work with height % device count != 0 and
-	// fix if something is wrong.
-    size_t height_d = ceil((double)height / (double)device_count);
-    int number_of_bytes_d = sizeof(PixelType) * width * height_d;
-    printf("height_d = %lu, nmb = %i\n", height_d, number_of_bytes_d);
-
-	for (int dev_id = 0; dev_id < device_count; dev_id++) {
-	    cudaSetDevice(dev_id);
-		cudaDeviceProp props;
-		cudaGetDeviceProperties(&props, 0);
-		printf("Device %d allocate 1\n", dev_id);
-
-		// Allocate place in device memory where we will store
-		// the 'strip' of the image associated with the device.
-		checkCudaErrors(cudaMalloc(
-				(void **)&d_pixels[dev_id],
-				number_of_bytes_d
-		));
-
-		printf("Device %d copy 1\n", dev_id);
-		// Copy relevant part of the pixels.
-		checkCudaErrors(cudaMemcpy(
-				d_pixels[dev_id],
-				h_image + number_of_bytes_d * dev_id,
-				number_of_bytes_d,
-				cudaMemcpyHostToDevice
-		));
-
-		dim3 block(32, 4);
-		dim3 grid(16, 16);
-		int total_blocks = grid.x * grid.y;
-
-	    cudaSetDevice(dev_id);
-		printf("Device %d allocate 2\n", dev_id);
-		// Allocate partial histogram.
-		checkCudaErrors(cudaMalloc(&d_part_hist[dev_id],
-				total_blocks * NUM_PARTS * sizeof(unsigned int)));
-
-		printf("Device %d computing partial histograms\n", dev_id);
-		// Compute partial histogram.
-		histogram_gmem_atomics<<<grid, block>>>(
-			d_pixels[dev_id],
-			width,
-			height_d,
-			d_part_hist[dev_id]);
-
-	    cudaSetDevice(dev_id);
-		printf("Device %d allocate 3\n", dev_id);
-		// Allocate place for the histogram of our 'strip'.
-		checkCudaErrors(cudaMalloc(&d_hist[dev_id],
-				ACTIVE_CHANNELS * NUM_BINS * sizeof(uint)));
-
-		dim3 block2(128);
-		dim3 grid2((3 * NUM_BINS + block.x - 1) / block.x);
-
-		printf("Device %d accumulating partial histograms\n", dev_id);
-		// Accumulate partial histograms.
-		histogram_gmem_accum<<<grid2, block2>>>(
-			d_part_hist[dev_id],
-			total_blocks,
-			d_hist[dev_id]);
-
-	    cudaSetDevice(dev_id);
-		// Deallocate partial histograms.
-		cudaFree(d_part_hist[dev_id]);
-		// Deallocate pixel values.
-		cudaFree(d_pixels[dev_id]);
-
-		// Now we, once again, have partial histograms,
-		// but they are stored on different devices.
-	}
-
-	// Let's pick one device as master
-	int master_id = 0;
-	// And task it with gathering and accumulating histograms from all 'strips'.
-
-	cudaSetDevice(master_id);
-	// First of all, allocate memory for "gathered" histograms.
-	int hist_size = ACTIVE_CHANNELS * NUM_BINS * sizeof(uint);
-	printf("Device %d allocate 4 \n", master_id);
-	checkCudaErrors(cudaMalloc(&d_all_hists,
-			device_count * hist_size));
-
-	// Create stream for transmission
-	printf("Device %d creating stream \n", master_id);
-	cudaStream_t stream;
-	checkCudaErrors(cudaStreamCreate(&stream));
-
-	// Now, every device (including master one) sends its histogram
-	// to the master.
-	for (int dev_id = 0; dev_id < device_count; dev_id++) {
-	    cudaSetDevice(dev_id);
-		printf("Device %d enabling peer access\n", dev_id);
-	    //checkCudaErrors(cudaDeviceEnablePeerAccess(master_id, 0 ));
-		printf("Device %d copying\n", dev_id);
-	    checkCudaErrors(cudaMemcpyPeerAsync(
-	    		d_all_hists + dev_id * hist_size, // dest addr
-	    		master_id, // dest_device
-	    		d_hist[dev_id], // src addr
-	    		dev_id, // src device
-	    		hist_size, // size of data being sent
-	    		stream // transmission stream
-	    		));
-	    // Deallocate 'strip' histogram.
-		checkCudaErrors(cudaFree(d_hist[dev_id]));
-	}
-
-	cudaSetDevice(master_id);
-
-
-	checkCudaErrors(cudaStreamDestroy(stream));
-
-	// Allocate memory for accumulated histogram.
-	checkCudaErrors(cudaMalloc(&d_accumulated_hists, hist_size));
-
-	dim3 block2(128);
-	dim3 grid2((3 * NUM_BINS + 32 - 1) / 32);
-
-	// Accumulate 'strip' histograms.
-	histogram_strips_accum<<<grid2, block2>>>(
-		d_all_hists,
-		device_count,
-		hist_size,
-		d_accumulated_hists);
-
-	// Deallocate 'strip' histograms.
-	checkCudaErrors(cudaFree(d_all_hists));
-
-	// Copy accumulated histogram back to CPU.
-	checkCudaErrors(cudaMemcpy(h_hist, d_accumulated_hists, hist_size, cudaMemcpyDeviceToHost));
-
-	// Deallocate accumulated histogram.
-	checkCudaErrors(cudaFree(d_accumulated_hists));
 }
 
