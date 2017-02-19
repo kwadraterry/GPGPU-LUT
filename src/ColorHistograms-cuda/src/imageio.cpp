@@ -10,13 +10,22 @@ int read_png(char *file_name, png_infop *info, uchar4 **pixels) {
 
 	// open file. if error, return error.
 	FILE *fp = fopen(file_name, "rb");
+	if (fp == NULL) {
+		return PNG_FAILURE;
+	}
 	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if(!png) abort();
+	if(!png) {
+		return PNG_FAILURE;
+	}
 
 	*info = png_create_info_struct(png);
-	if(!info) abort();
+	if(!info) {
+		return PNG_FAILURE;
+	}
 
-	if(setjmp(png_jmpbuf(png))) abort();
+	if(setjmp(png_jmpbuf(png))) {
+		return PNG_FAILURE;
+	}
 
 	png_init_io(png, fp);
 
