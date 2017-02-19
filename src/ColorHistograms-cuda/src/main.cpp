@@ -120,7 +120,6 @@ int main (int argc, char* argv[]) {
     PixelType* d_pixels;
     unsigned int* d_hist;
     unsigned int* h_hist;
-    unsigned int* h_hist2;
     unsigned int* cpu_hist;
 
 	png_infop info;
@@ -234,18 +233,80 @@ int main (int argc, char* argv[]) {
     }
 
     // Multiple GPU
-    h_hist2 = (uint* )malloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint));
 	printf("\nMultiple GPUs: \n");
-    run_multigpu(h_pixels, info->width, info->height, h_hist2);
-    print_histogram(h_hist2);
 
+	int device_count = 0;
+	cudaError_t error_id = cudaGetDeviceCount(&device_count);
+	int used_devices = std::min(device_count, ACTIVE_CHANNELS);
+	printf("Found %d cuda-compatible devices, using %d of them.\n", device_count, used_devices);
+
+    PixelType* d_pixels_m[used_devices];
+    unsigned int* d_hist_m[used_devices];
+    unsigned int* h_hist_m;
+
+	printf("Allocating GPU memory and copying input data...");
+	for (int dev_id = 0; dev_id < used_devices; dev_id++) {
+		cudaSetDevice(dev_id);
+		printf(" [Device %d]", dev_id);
+		checkCudaErrors(cudaMalloc((void **)&d_pixels_m[dev_id], number_of_bytes));
+		checkCudaErrors(cudaMalloc((void **)&d_hist_m[dev_id], ACTIVE_CHANNELS * NUM_BINS * sizeof(uint)));
+		checkCudaErrors(cudaMemcpy(d_pixels_m[dev_id], h_pixels, number_of_bytes, cudaMemcpyHostToDevice));
+
+	    cudaDeviceSynchronize();
+	}
+	printf(" ...Done\n");
+
+	printf("Computing histogram...");
+	for (int dev_id = 0; dev_id < used_devices; dev_id++) {
+		cudaSetDevice(dev_id);
+		run_multigpu(d_pixels_m[dev_id], info->width, info->height, d_hist_m[dev_id], dev_id, used_devices);
+	}
+    cudaDeviceSynchronize();
+	printf("Done\n");
+
+    h_hist_m = (uint* )calloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), sizeof(uint));
+	printf("Copying histograms back to CPU...");
+
+    for (uint CHANNEL = 0; CHANNEL < ACTIVE_CHANNELS; CHANNEL++) {
+    	int dev_id = CHANNEL % used_devices;
+        printf(" [Channel %u, from device %d]", CHANNEL, dev_id);
+		cudaSetDevice(dev_id);
+        checkCudaErrors(cudaMemcpy(
+        		h_hist_m + CHANNEL * NUM_BINS,
+        		d_hist_m[dev_id] + CHANNEL * NUM_BINS,
+        		NUM_BINS * sizeof(uint),
+        		cudaMemcpyDeviceToHost));
+    }
+    cudaDeviceSynchronize();
+	printf(" ...Done\n");
+
+    // Print results.
+    print_histogram(h_hist_m);
+    hists_ne = compare_histograms(cpu_hist, h_hist_m, ACTIVE_CHANNELS * NUM_BINS);
+	if (hists_ne) {
+		printf("Histograms differ!\nChannel %u, bin %u:\nCPU histogram: %3u\nGPU histogram: %3u\n",
+				hists_ne / NUM_BINS, hists_ne % NUM_BINS, cpu_hist[hists_ne], h_hist_m[hists_ne]);
+	}
+
+    cudaSetDevice(0);
     printf("Freeing the memory...");
+    printf(" [Device 0 (default)]");
     checkCudaErrors(cudaFree(d_pixels));
     checkCudaErrors(cudaFree(d_hist));
+
+    for (int dev_id = 0; dev_id < used_devices; dev_id++) {
+		cudaSetDevice(dev_id);
+		printf(" [Device %d]", dev_id);
+		checkCudaErrors(cudaFree(d_pixels_m[dev_id]));
+		checkCudaErrors(cudaFree(d_hist_m[dev_id]));
+
+    }
+
+    printf(" [CPU]");
     free(h_pixels);
     free(h_hist);
-    free(h_hist2);
+    free(h_hist_m);
     free(cpu_hist);
-    printf("Done\n");
+    printf(" ...Done\n");
 	return 0;
 }

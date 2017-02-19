@@ -50,6 +50,14 @@ void run_gmem_atomics(
 	unsigned int *d_hist);
 
 void run_multigpu(
+    PixelType *d_image,
+    int width,
+    int height,
+    unsigned int *d_hist,
+    int device_id,
+    int device_count);
+
+void run_multigpu1(
     PixelType *h_image,
     int width,
     int height,
