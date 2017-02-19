@@ -48,7 +48,7 @@
 
 void probe_image(PixelType* image, png_infop info, unsigned int n) {
 	/**
-	 * Debug: print every 10th pixel.
+	 * Debug: print every nth pixel.
 	 */
 	PixelType pixel;
 	for (uint y = 0; y < info->height; y += n){
@@ -90,12 +90,20 @@ void print_histogram(unsigned int* hist) {
 
 unsigned int compare_histograms(const unsigned int* hist_a,
 		const unsigned int* hist_b, unsigned int n) {
+	/**
+	 * Compare two arrays (in our case, histograms).
+	 * If they are identical, return 0.
+	 * If they are not, return index of the _last_ differing element.
+	 */
 	while ( --n > 0 && hist_a[n] == hist_b[n]);
 	return n;
 }
 
 
 void print_help(char* arg0) {
+	/**
+	 * Print standard UNIX-style help message.
+	 */
 	printf("Compute color histogram of PNG image using GPU and CPU.\n\n");
 	printf("Usage: %s file.png [options]\n", arg0);
 	printf("Options: \n");
