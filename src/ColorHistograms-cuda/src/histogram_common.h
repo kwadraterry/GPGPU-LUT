@@ -32,14 +32,25 @@
 #ifndef HISTOGRAM_COMMON_H_
 #define HISTOGRAM_COMMON_H_
 
+// This header contains constants that are controlling the histogram calculation.
+// They affect both CPU and GPU versions.
 
 
-#define NUM_BINS 16
-#define K_BIN (256 / NUM_BINS)
+// These are fine to experiment with. They actually would look better as parameters,
+//      but I am too lazy for this.
+#define NUM_BINS 16              // Number of bins.
+#define NUM_PARTS 64             // Number of parts the image is divided into
+                                 //    for parallel computing of histogram on GPU.
+#define ACTIVE_CHANNELS 4        // Number of channels for which the histogram is computed.
+                                 //    Note: PNG has 4 channels (R, G, B, Alpha).
+                                 //    So, to compute histograms only for RGB, without
+                                 //    alpha-channel, set this to 3.
 
-#define ACTIVE_CHANNELS 4
-#define NUM_PARTS 64
-#define PixelType uchar4
+
+// These are for inner use. Nothing stops you from modyfying these, too,
+//    but that would probably break something.
+#define PixelType uchar4         // Type used for pixel data.
+#define K_BIN (256 / NUM_BINS)	 // Number of colors stored in one bin.
 
 
 
