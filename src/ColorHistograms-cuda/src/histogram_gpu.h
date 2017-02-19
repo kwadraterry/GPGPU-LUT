@@ -49,4 +49,10 @@ void run_gmem_atomics(
 	int height,
 	unsigned int *d_hist);
 
+void run_multigpu(
+    PixelType *h_image,
+    int width,
+    int height,
+    unsigned int *h_hist);
+
 #endif

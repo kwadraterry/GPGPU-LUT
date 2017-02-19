@@ -120,6 +120,7 @@ int main (int argc, char* argv[]) {
     PixelType* d_pixels;
     unsigned int* d_hist;
     unsigned int* h_hist;
+    unsigned int* h_hist2;
     unsigned int* cpu_hist;
 
 	png_infop info;
@@ -232,11 +233,18 @@ int main (int argc, char* argv[]) {
     			hists_ne / NUM_BINS, hists_ne % NUM_BINS, cpu_hist[hists_ne], h_hist[hists_ne]);
     }
 
+    // Multiple GPU
+    h_hist2 = (uint* )malloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint));
+	printf("\nMultiple GPUs: \n");
+    run_multigpu(h_pixels, info->width, info->height, h_hist2);
+    print_histogram(h_hist2);
+
     printf("Freeing the memory...");
     checkCudaErrors(cudaFree(d_pixels));
     checkCudaErrors(cudaFree(d_hist));
     free(h_pixels);
     free(h_hist);
+    free(h_hist2);
     free(cpu_hist);
     printf("Done\n");
 	return 0;
