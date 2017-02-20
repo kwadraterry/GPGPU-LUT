@@ -210,6 +210,27 @@ int argparse(int argc, char* argv[], Config* cfg) {
 }
 
 
+void print_time_and_speed(
+        const char* func_name, 
+        double timer_v, 
+        unsigned int num_runs, 
+        size_t n_bytes) {
+    /** 
+     * Print averaged run time of the function and its data processing speed.
+     * @param func_name - Function name (or whatever you want to 
+     *                    be displayed instead of it.
+     * @param timer_v   - Time recorded by the timer.
+     * @param num_runs  - Number of runs made.
+     * @param n_bytes   - Data size.
+     */
+    double avg_secs = 1.0e-3 * timer_v / (double)num_runs;
+    printf("\n%s time (averaged over %u runs): %.5f sec, %.4f MB/sec\n\n",
+            func_name, num_runs, avg_secs, 
+            ((double)n_bytes * 1.0e-6) / avg_secs);
+    return;
+}
+
+
 int main (int argc, char* argv[]) {
 	// Main variables initialization.
 	PixelType* h_pixels;
@@ -221,7 +242,6 @@ int main (int argc, char* argv[]) {
 	png_infop info;
 
 	StopWatchInterface *h_timer = NULL;
-	unsigned int num_runs = 1;
 	unsigned int hists_ne;
 	int re = 0;
 	
@@ -257,10 +277,10 @@ int main (int argc, char* argv[]) {
 			sdkStopTimer(&h_timer);
 		}
 		sdkStopTimer(&h_timer);
-		double cpu_avg_secs = 1.0e-3 * (double)sdkGetTimerValue(&h_timer) / (double)cfg.num_runs;
-
-		printf("\nrun_cpu() time (average from %u runs) : %.5f sec, %.4f MB/sec\n\n", cfg.num_runs, cpu_avg_secs,
-			((double)number_of_bytes * 1.0e-6) / cpu_avg_secs);
+		print_time_and_speed(
+		        "run_cpu()", 
+		        (double)sdkGetTimerValue(&h_timer),
+		        cfg.num_runs, number_of_bytes);
 
 		if (!cfg.quiet) {print_histogram(cpu_hist);};
 	}
@@ -290,7 +310,6 @@ int main (int argc, char* argv[]) {
 		cudaDeviceSynchronize();
 		sdkStopTimer(&h_timer);
 		if (cfg.verbose) {printf("Done\n");};
-		double d_avg_secs = 1.0e-3 * (double)sdkGetTimerValue(&h_timer) / (double)cfg.num_runs;
 
 		// Copy result back to CPU
 		if (cfg.verbose) {printf("Copying result to CPU...");};
@@ -298,7 +317,10 @@ int main (int argc, char* argv[]) {
 		checkCudaErrors(cudaMemcpy(h_hist, d_hist, ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), cudaMemcpyDeviceToHost));
 		if (cfg.verbose) {printf("Done\n");};
 
-		printf("\nrun_gmem_atomics() time (average from %u runs) : %.5f sec, %.4f MB/sec\n\n", cfg.num_runs, d_avg_secs, ((double)number_of_bytes * 1.0e-6) / d_avg_secs);
+		print_time_and_speed(
+		        "run_gpu()", 
+		        (double)sdkGetTimerValue(&h_timer),
+		        cfg.num_runs, number_of_bytes);
 
 		// Print results.
 		if (!cfg.quiet) print_histogram(h_hist);
@@ -351,9 +373,11 @@ int main (int argc, char* argv[]) {
 		}
 		sdkStopTimer(&h_timer);
 		if (cfg.verbose) {printf("Done\n");};
-		double mgpu_avg_secs = 1.0e-3 * (double)sdkGetTimerValue(&h_timer) / (double)cfg.num_runs;
-
-		printf("\nrun_multigpu() time (average from %u runs) : %.5f sec, %.4f MB/sec\n\n", cfg.num_runs, mgpu_avg_secs, ((double)number_of_bytes * 1.0e-6) / mgpu_avg_secs);
+		
+		print_time_and_speed(
+		        "run_gpu()", 
+		        (double)sdkGetTimerValue(&h_timer),
+		        cfg.num_runs, number_of_bytes);
 
 		h_hist_m = (uint* )calloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), sizeof(uint));
 		if (cfg.verbose) {printf("Copying histograms back to CPU...");};
