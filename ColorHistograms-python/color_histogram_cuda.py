@@ -23,7 +23,10 @@ def histogram(image_path, num_bins):
     block2 = (128,1, 1)
     grid2 = ((c * num_bins + block2[0] - 1) / block2[0], 1, 1)
 
-    histogram_atomics(drv.In(image), w, h, drv.Out(partial), block=block1, grid=grid1)
+    W = numpy.dtype(numpy.int32).type(w)
+    H = numpy.dtype(numpy.int32).type(h)
+    histogram_atomics(drv.In(image), W, H, drv.Out(partial), block=block1, grid=grid1)
+    sz = numpy.dtype(numpy.int32).type(grid1[0] * grid1[1])
     histogram_accum(drv.In(partial), grid1[0] * grid1[1], drv.Out(dest))
 
     return dest
