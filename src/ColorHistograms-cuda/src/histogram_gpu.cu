@@ -141,7 +141,7 @@ void run_gmem_atomics(
 	cudaMalloc(&d_part_hist, total_blocks * NUM_PARTS * sizeof(unsigned int));
 
 	dim3 block2(128);
-	dim3 grid2((3 * NUM_BINS + block.x - 1) / block.x);
+	dim3 grid2((ACTIVE_CHANNELS * NUM_BINS + block2.x - 1) / block2.x);
 
 	histogram_gmem_atomics<<<grid, block>>>(
 		d_image,
@@ -225,7 +225,7 @@ void run_multigpu(
 	cudaMalloc(&d_part_hist, total_blocks * NUM_PARTS * sizeof(unsigned int));
 
 	dim3 block2(128);
-	dim3 grid2((3 * NUM_BINS + block.x - 1) / block.x);
+	dim3 grid2((ACTIVE_CHANNELS * NUM_BINS + block2.x - 1) / block2.x);
 
 	histogram_gmem_atomics1<<<grid, block>>>(
 		d_image,
