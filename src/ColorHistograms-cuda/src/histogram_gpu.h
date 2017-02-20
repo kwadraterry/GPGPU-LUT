@@ -26,22 +26,24 @@
  *
  ******************************************************************************/
 
-#ifndef HISTOGRAM_GPU_H
-#define HISTOGRAM_GPU_H
+#ifndef HISTOGRAM_GPU_H_
+#define HISTOGRAM_GPU_H_
 #include "histogram_common.h"
 
-__device__ __forceinline__ void DecodePixel(uchar4 pixel, unsigned int (&bins)[ACTIVE_CHANNELS]);
+__device__ __forceinline__ void DecodePixel(
+        uchar4 pixel,
+        unsigned int (&bins)[ACTIVE_CHANNELS]);
 
 __global__ void histogram_gmem_atomics(
-	const PixelType *in,
-	int width,
-	int height,
-	unsigned int *out);
+        const PixelType *in,
+        int width,
+        int height,
+        unsigned int *out);
 
 __global__ void histogram_gmem_accum(
-	const unsigned int *in,
-	int n,
-	unsigned int *out);
+        const unsigned int *in,
+        int n,
+        unsigned int *out);
 
 __global__ void histogram_gmem_atomics1(
         const PixelType *in,
@@ -52,18 +54,17 @@ __global__ void histogram_gmem_atomics1(
         int dev_count);
 
 void run_gmem_atomics(
-	PixelType *d_image,
-	int width,
-	int height,
-	unsigned int *d_hist);
+        PixelType *d_image,
+        int width,
+        int height,
+        unsigned int *d_hist);
 
 void run_multigpu(
-    PixelType *d_image,
-    int width,
-    int height,
-    unsigned int *d_hist,
-    int device_id,
-    int device_count);
+        PixelType *d_image,
+        int width,
+        int height,
+        unsigned int *d_hist,
+        int device_id,
+        int device_count);
 
-
-#endif
+#endif /* HISTOGRAM_GPU_H_ */

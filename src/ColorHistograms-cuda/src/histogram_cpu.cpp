@@ -36,29 +36,30 @@
 // Decode uchar4 pixel into bins
 inline void DecodePixelCPU(PixelType pixel, unsigned int (&bins)[ACTIVE_CHANNELS])
 {
-	unsigned char* samples = reinterpret_cast<unsigned char*>(&pixel);
+    unsigned char* samples = reinterpret_cast<unsigned char*>(&pixel);
 
-	#pragma unroll
-	for (int CHANNEL = 0; CHANNEL < ACTIVE_CHANNELS; ++CHANNEL)
-		bins[CHANNEL] = (unsigned int) (samples[CHANNEL]) / K_BIN;
+    #pragma unroll
+    for (int CHANNEL = 0; CHANNEL < ACTIVE_CHANNELS; ++CHANNEL) {
+        bins[CHANNEL] = (unsigned int) (samples[CHANNEL]) / K_BIN;
+    }
 }
 
 
 void run_cpu(
-    PixelType *h_image,
-    int width,
-    int height,
-    unsigned int *h_hist)
+        PixelType *h_image,
+        int width,
+        int height,
+        unsigned int *h_hist)
 {
-	PixelType px;
-	unsigned int bins[ACTIVE_CHANNELS];
-	for (unsigned int y = 0; y < height; y++) {
-		for (unsigned int x = 0; x < width; x++) {
-			px = h_image[y * width + x];
-			DecodePixelCPU(px, bins);
-			for (unsigned int CHANNEL = 0; CHANNEL < ACTIVE_CHANNELS; CHANNEL++) {
-				h_hist[CHANNEL * NUM_BINS + bins[CHANNEL]] += 1;
-			}
-		}
-	}
+    PixelType px;
+    unsigned int bins[ACTIVE_CHANNELS];
+    for (unsigned int y = 0; y < height; y++) {
+        for (unsigned int x = 0; x < width; x++) {
+            px = h_image[y * width + x];
+            DecodePixelCPU(px, bins);
+            for (unsigned int CHANNEL = 0; CHANNEL < ACTIVE_CHANNELS; CHANNEL++) {
+                h_hist[CHANNEL * NUM_BINS + bins[CHANNEL]] += 1;
+            }
+        }
+    }
 }

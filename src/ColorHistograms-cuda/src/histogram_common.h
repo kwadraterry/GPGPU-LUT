@@ -38,17 +38,17 @@
 
 // These are fine to experiment with. They actually would look better as parameters,
 //      but I am too lazy for this.
-#define NUM_BINS 16              // Number of bins.
-#define ACTIVE_CHANNELS 4        // Number of channels for which the histogram is computed.
-                                 //    Note: PNG has 4 channels (R, G, B, Alpha).
-                                 //    So, to compute histograms only for RGB, without
-                                 //    alpha-channel, set this to 3.
+#define NUM_BINS 16         // Number of bins.
+#define ACTIVE_CHANNELS 4   // Number of channels for which the histogram is computed.
+                            //    Note: PNG has 4 channels (R, G, B, Alpha).
+                            //    So, to compute histograms only for RGB, without
+                            //    alpha-channel, set this to 3.
 
 
-// These are for inner use. Nothing stops you from modyfying these, too,
+// These are for inner use. Nothing stops you from modifying these, too,
 //    but that would probably break something.
-#define PixelType uchar4         // Type used for pixel data.
-#define K_BIN (256 / NUM_BINS)	 // Number of colors stored in one bin.
+#define PixelType uchar4                     // Type used for pixel data.
+#define K_BIN (256 / NUM_BINS)               // Number of colors stored in one bin.
 #define NUM_PARTS NUM_BINS * ACTIVE_CHANNELS // Size of partial histogram.
 
 

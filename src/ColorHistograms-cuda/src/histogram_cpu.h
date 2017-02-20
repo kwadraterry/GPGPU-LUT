@@ -29,16 +29,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef HISTOGRAM_CPU_H
-#define HISTOGRAM_CPU_H
+#ifndef HISTOGRAM_CPU_H_
+#define HISTOGRAM_CPU_H_
 #include "histogram_common.h"
 
 void DecodePixelCPU(PixelType pixel, unsigned int (&bins)[ACTIVE_CHANNELS]);
 
 void run_cpu(
-    PixelType *h_image,
-    int width,
-    int height,
-    unsigned int *h_hist);
+        PixelType *h_image,
+        int width,
+        int height,
+        unsigned int *h_hist);
 
-#endif
+#endif /* HISTOGRAM_CPU_H *

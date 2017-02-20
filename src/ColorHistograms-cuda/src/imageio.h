@@ -12,10 +12,10 @@
 #define PNG_FAILURE -1
 
 typedef struct {
-	int width, height;
-	int bit_depth, color_type;
-	int filter_method, compression_type, interlace_type;
-	size_t bytes_per_row;
+    int width, height;
+    int bit_depth, color_type;
+    int filter_method, compression_type, interlace_type;
+    size_t bytes_per_row;
 } png_t;
 
-int read_png(char *file_name, png_infop *info, uchar4 **pixels);
+int read_png (char *file_name, png_infop *info, uchar4 **pixels);
