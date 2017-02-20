@@ -5,7 +5,7 @@ from scipy import misc
 from color_histogram_cuda_module import histogram_atomics, histogram_accum
 
 def histogram(image_path, num_bins):
-    image = misc.imread(image_path))
+    image = misc.imread(image_path)
 
     bin_size = 256 / num_bins
 
