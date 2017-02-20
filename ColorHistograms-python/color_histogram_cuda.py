@@ -15,7 +15,7 @@ def histogram(image_path, num_bins):
     # reinterpret image with 4-byte type
     image = image.view(numpy.uint32)
 
-    dest = numpy.zeros((bin_size, c), numpy.uint32)
+    dest = numpy.zeros((c, bin_size), numpy.uint32)
     parts = num_bins * c
     block1 = (32, 4, 1)
     grid1 = (16, 16, 1)
