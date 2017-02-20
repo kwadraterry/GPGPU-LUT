@@ -199,6 +199,7 @@ int argparse(int argc, char* argv[], Config* cfg) {
 		else {
 			printf("Unrecognized argument: %s. Use -h or --help for usage "
 			"information.\n", argv[arg_it]);
+			return -1;
 		}
 		arg_it++;
 	}
