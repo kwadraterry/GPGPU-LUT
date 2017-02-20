@@ -231,17 +231,187 @@ void print_time_and_speed(
 }
 
 
+void test_cpu(
+        PixelType* h_pixels, 
+        unsigned int* cpu_hist, 
+        StopWatchInterface* h_timer, 
+        const Config* cfg, 
+        png_infop info) {
+    /**
+     * Compute histogram on CPU several times, report time and speed.
+     */
+    size_t number_of_bytes = sizeof(uchar4) * info->width * info->height;
+
+	sdkResetTimer(&h_timer);
+
+	for (unsigned int i = 0; i < cfg->num_runs; i++) {
+		std::fill(cpu_hist, cpu_hist + ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), 0);
+		
+		sdkStartTimer(&h_timer);
+		run_cpu(h_pixels, info->width, info->height, cpu_hist);
+		sdkStopTimer(&h_timer);
+	}
+	
+	print_time_and_speed(
+	        "run_cpu()", 
+	        (double)sdkGetTimerValue(&h_timer),
+	        cfg->num_runs, number_of_bytes);
+}
+
+
+void test_gpu(
+        PixelType* h_pixels, 
+        unsigned int* gpu_hist, 
+        StopWatchInterface* h_timer, 
+        const Config* cfg, 
+        png_infop info) {
+    /**
+     * Compute histogram on GPU several times, report time and speed.
+     */
+	PixelType* d_pixels;
+	unsigned int* d_hist;
+    size_t number_of_bytes = sizeof(uchar4) * info->width * info->height;
+	sdkResetTimer(&h_timer);
+	
+	if (cfg->verbose) {printf("Allocating GPU memory and copying input data...");};
+	checkCudaErrors(cudaMalloc((void **)&d_pixels, number_of_bytes));
+	checkCudaErrors(cudaMalloc(
+	        (void **)&d_hist, ACTIVE_CHANNELS * NUM_BINS * sizeof(uint)));
+	checkCudaErrors(cudaMemcpy(
+	        d_pixels, h_pixels, number_of_bytes, cudaMemcpyHostToDevice));
+	if (cfg->verbose) {printf("Done\n");};
+
+	// Run histogram computing.
+	if (cfg->verbose) {printf("Computing histogram...");};
+
+	cudaDeviceSynchronize();
+	sdkStartTimer(&h_timer);
+
+	for (unsigned int i = 0; i < cfg->num_runs; i++) {
+		run_gmem_atomics(d_pixels, info->width, info->height, d_hist);
+	}
+
+	cudaDeviceSynchronize();
+	sdkStopTimer(&h_timer);
+	if (cfg->verbose) {printf("Done\n");};
+
+	// Copy result back to CPU.
+	if (cfg->verbose) {printf("Copying result to CPU...");};
+	checkCudaErrors(cudaMemcpy(
+	        gpu_hist, d_hist, ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), cudaMemcpyDeviceToHost));
+	if (cfg->verbose) {printf("Done\n");};
+
+	print_time_and_speed(
+	        "run_gpu()", 
+	        (double)sdkGetTimerValue(&h_timer),
+	        cfg->num_runs, number_of_bytes);
+	if (cfg->verbose) {printf("Freeing the memory...");};
+	checkCudaErrors(cudaFree(d_pixels));
+	checkCudaErrors(cudaFree(d_hist));
+	if (cfg->verbose) {printf(" Done\n");};
+}
+
+
+
+void test_mgpu(
+        PixelType* h_pixels, 
+        unsigned int* mgpu_hist, 
+        StopWatchInterface* h_timer, 
+        const Config* cfg, 
+        png_infop info) {
+    /**
+     * Compute histogram on several GPU several times, report time and speed.
+     */
+    size_t number_of_bytes = sizeof(uchar4) * info->width * info->height;
+	sdkResetTimer(&h_timer);
+	
+	int device_count = 0;
+	cudaError_t error_id = cudaGetDeviceCount(&device_count);
+	int used_devices = std::min(device_count, ACTIVE_CHANNELS);
+	if (cfg->verbose) {
+	    printf("Found %d cuda-compatible devices, using %d of them.\n", 
+	            device_count, used_devices);
+	};
+
+	PixelType* d_pixels_m[used_devices];
+	unsigned int* d_hist_m[used_devices];
+
+	if (cfg->verbose) {
+	        printf("Allocating GPU memory and copying input data...");
+	};
+	for (int dev_id = 0; dev_id < used_devices; dev_id++) {
+		cudaSetDevice(dev_id);
+		if (cfg->verbose) {printf(" [Device %d]", dev_id);};
+		checkCudaErrors(cudaMalloc((void **)&d_pixels_m[dev_id], 
+		        number_of_bytes));
+		checkCudaErrors(cudaMalloc((void **)&d_hist_m[dev_id], 
+		        ACTIVE_CHANNELS * NUM_BINS * sizeof(uint)));
+		checkCudaErrors(cudaMemcpy(d_pixels_m[dev_id], h_pixels, 
+		        number_of_bytes, cudaMemcpyHostToDevice));
+
+		cudaDeviceSynchronize();
+	}
+	if (cfg->verbose) {printf(" ...Done\n");};
+
+	if (cfg->verbose) {printf("Computing histogram...");};
+	sdkResetTimer(&h_timer);
+	for (unsigned int i = 0; i < cfg->num_runs; i++) {
+		for (int dev_id = 0; dev_id < used_devices; dev_id++) {
+			cudaSetDevice(dev_id);
+	        sdkStartTimer(&h_timer);
+			run_multigpu(
+			        d_pixels_m[dev_id], info->width, info->height, 
+			        d_hist_m[dev_id], dev_id, used_devices);
+			cudaDeviceSynchronize();
+	        sdkStopTimer(&h_timer);
+		}
+	}
+	if (cfg->verbose) {printf("Done\n");};
+	
+	print_time_and_speed(
+	        "run_multigpu()", 
+	        (double)sdkGetTimerValue(&h_timer),
+	        cfg->num_runs, number_of_bytes);
+
+	if (cfg->verbose) {printf("Copying histograms back to CPU...");};
+
+	for (uint CHANNEL = 0; CHANNEL < ACTIVE_CHANNELS; CHANNEL++) {
+		int dev_id = CHANNEL % used_devices;
+		if (cfg->verbose) {
+		    printf(" [Channel %u, from device %d]", CHANNEL, dev_id);
+		};
+		cudaSetDevice(dev_id);
+		checkCudaErrors(cudaMemcpy(
+		        mgpu_hist + CHANNEL * NUM_BINS,
+		        d_hist_m[dev_id] + CHANNEL * NUM_BINS,
+		        NUM_BINS * sizeof(uint),
+		        cudaMemcpyDeviceToHost));
+	}
+	cudaDeviceSynchronize();
+	if (cfg->verbose) {printf(" ...Done\n");};
+	
+	if (cfg->verbose) {printf("Freeing the memory...");};
+	for (int dev_id = 0; dev_id < used_devices; dev_id++) {
+		cudaSetDevice(dev_id);
+		if (cfg->verbose) {printf(" [Device %d]", dev_id);};
+		checkCudaErrors(cudaFree(d_pixels_m[dev_id]));
+		checkCudaErrors(cudaFree(d_hist_m[dev_id]));
+	}
+	if (cfg->verbose) {printf(" ...Done\n");};
+}
+
+
+
 int main (int argc, char* argv[]) {
 	// Main variables initialization.
 	PixelType* h_pixels;
-	PixelType* d_pixels;
-	unsigned int* d_hist;
 	unsigned int* h_hist;
+	unsigned int* h_hist_m;
 	unsigned int* cpu_hist;
 
 	png_infop info;
 
-	StopWatchInterface *h_timer = NULL;
+	StopWatchInterface* h_timer = NULL;
 	unsigned int hists_ne;
 	int re = 0;
 	
@@ -259,78 +429,46 @@ int main (int argc, char* argv[]) {
 
 	size_t number_of_bytes = sizeof(uchar4) * info->width * info->height;
 
-	if (cfg.verbose) {printf("Image %s loaded (%lu x %lu px.)\n", cfg.filename, info->height, info->width);};
+	if (cfg.verbose) {
+	    printf("Image %s loaded (%lu x %lu px.)\n", cfg.filename, 
+	    info->height, info->width);
+	};
 
 	sdkCreateTimer(&h_timer);
 
 	// CPU
 	if (cfg.test_cpu) {
 		printf("\nCPU: \n");
-		cpu_hist = (uint* )calloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), sizeof(uint));
-
-		sdkResetTimer(&h_timer);
-
-		for (unsigned int i = 0; i < cfg.num_runs; i++) {
-			std::fill(cpu_hist, cpu_hist + ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), 0);
-			sdkStartTimer(&h_timer);
-			run_cpu(h_pixels, info->width, info->height, cpu_hist);
-			sdkStopTimer(&h_timer);
-		}
-		sdkStopTimer(&h_timer);
-		print_time_and_speed(
-		        "run_cpu()", 
-		        (double)sdkGetTimerValue(&h_timer),
-		        cfg.num_runs, number_of_bytes);
-
-		if (!cfg.quiet) {print_histogram(cpu_hist);};
+		cpu_hist = (uint* )calloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), 
+		        sizeof(uint));
+		test_cpu(h_pixels, cpu_hist, h_timer, &cfg, info);
+	    if (!cfg.quiet) {print_histogram(cpu_hist);};
 	}
 
 
 	//GPU
 	if (cfg.test_gpu) {
+	    cudaSetDevice(0);
+	
 		// Copy data to GPU
 		printf("\nGPU: \n");
-		if (cfg.verbose) {printf("Allocating GPU memory and copying input data...");};
-		checkCudaErrors(cudaMalloc((void **)&d_pixels, number_of_bytes));
-		checkCudaErrors(cudaMalloc((void **)&d_hist, ACTIVE_CHANNELS * NUM_BINS * sizeof(uint)));
-		checkCudaErrors(cudaMemcpy(d_pixels, h_pixels, number_of_bytes, cudaMemcpyHostToDevice));
-		if (cfg.verbose) {printf("Done\n");};
-
-		// Run histogram computing
-		if (cfg.verbose) {printf("Computing histogram...");};
-
-		cudaDeviceSynchronize();
-		sdkResetTimer(&h_timer);
-		sdkStartTimer(&h_timer);
-
-		for (unsigned int i = 0; i < cfg.num_runs; i++) {
-			run_gmem_atomics(d_pixels, info->width, info->height, d_hist);
-		}
-
-		cudaDeviceSynchronize();
-		sdkStopTimer(&h_timer);
-		if (cfg.verbose) {printf("Done\n");};
-
-		// Copy result back to CPU
-		if (cfg.verbose) {printf("Copying result to CPU...");};
 		h_hist = (uint* )malloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint));
-		checkCudaErrors(cudaMemcpy(h_hist, d_hist, ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), cudaMemcpyDeviceToHost));
-		if (cfg.verbose) {printf("Done\n");};
-
-		print_time_and_speed(
-		        "run_gpu()", 
-		        (double)sdkGetTimerValue(&h_timer),
-		        cfg.num_runs, number_of_bytes);
+		test_gpu(h_pixels, h_hist, h_timer, &cfg, info);
 
 		// Print results.
 		if (!cfg.quiet) print_histogram(h_hist);
 
 		// If CPU-computed histogram is available, use it to check results.
 		if (cfg.test_cpu) {
-			hists_ne = compare_histograms(cpu_hist, h_hist, ACTIVE_CHANNELS * NUM_BINS);
+			hists_ne = compare_histograms(
+			        cpu_hist, h_hist, ACTIVE_CHANNELS * NUM_BINS);
 			if (hists_ne) {
-				printf("Histograms differ!\nChannel %u, bin %u:\nCPU histogram: %3u\nGPU histogram: %3u\n",
-				hists_ne / NUM_BINS, hists_ne % NUM_BINS, cpu_hist[hists_ne], h_hist[hists_ne]);
+				printf("Histograms differ!\n"
+				       "Channel %u, bin %u:\n"
+				       "CPU histogram: %3u\n"
+				       "GPU histogram: %3u\n",
+				        hists_ne / NUM_BINS, hists_ne % NUM_BINS, 
+				        cpu_hist[hists_ne], h_hist[hists_ne]);
 				re = -2;
 			}
 		}
@@ -339,100 +477,42 @@ int main (int argc, char* argv[]) {
 	// Multiple GPU
 	if (cfg.test_mgpu) {
 		printf("\nMultiple GPUs: \n");
-
-		int device_count = 0;
-		cudaError_t error_id = cudaGetDeviceCount(&device_count);
-		int used_devices = std::min(device_count, ACTIVE_CHANNELS);
-		if (cfg.verbose) {printf("Found %d cuda-compatible devices, using %d of them.\n", device_count, used_devices);};
-
-		PixelType* d_pixels_m[used_devices];
-		unsigned int* d_hist_m[used_devices];
-		unsigned int* h_hist_m;
-
-		if (cfg.verbose) {printf("Allocating GPU memory and copying input data...");};
-		for (int dev_id = 0; dev_id < used_devices; dev_id++) {
-			cudaSetDevice(dev_id);
-			if (cfg.verbose) {printf(" [Device %d]", dev_id);};
-			checkCudaErrors(cudaMalloc((void **)&d_pixels_m[dev_id], number_of_bytes));
-			checkCudaErrors(cudaMalloc((void **)&d_hist_m[dev_id], ACTIVE_CHANNELS * NUM_BINS * sizeof(uint)));
-			checkCudaErrors(cudaMemcpy(d_pixels_m[dev_id], h_pixels, number_of_bytes, cudaMemcpyHostToDevice));
-
-			cudaDeviceSynchronize();
-		}
-		if (cfg.verbose) {printf(" ...Done\n");};
-
-		if (cfg.verbose) {printf("Computing histogram...");};
-		sdkResetTimer(&h_timer);
-		sdkStartTimer(&h_timer);
-		for (unsigned int i = 0; i < cfg.num_runs; i++) {
-			for (int dev_id = 0; dev_id < used_devices; dev_id++) {
-				cudaSetDevice(dev_id);
-				run_multigpu(d_pixels_m[dev_id], info->width, info->height, d_hist_m[dev_id], dev_id, used_devices);
-				cudaDeviceSynchronize();
-			}
-		}
-		sdkStopTimer(&h_timer);
-		if (cfg.verbose) {printf("Done\n");};
+		h_hist_m = (uint* )malloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint));
 		
-		print_time_and_speed(
-		        "run_gpu()", 
-		        (double)sdkGetTimerValue(&h_timer),
-		        cfg.num_runs, number_of_bytes);
-
-		h_hist_m = (uint* )calloc(ACTIVE_CHANNELS * NUM_BINS * sizeof(uint), sizeof(uint));
-		if (cfg.verbose) {printf("Copying histograms back to CPU...");};
-
-		for (uint CHANNEL = 0; CHANNEL < ACTIVE_CHANNELS; CHANNEL++) {
-			int dev_id = CHANNEL % used_devices;
-			if (cfg.verbose) {printf(" [Channel %u, from device %d]", CHANNEL, dev_id);};
-			cudaSetDevice(dev_id);
-			checkCudaErrors(cudaMemcpy(
-			h_hist_m + CHANNEL * NUM_BINS,
-			d_hist_m[dev_id] + CHANNEL * NUM_BINS,
-			NUM_BINS * sizeof(uint),
-			cudaMemcpyDeviceToHost));
-		}
-		cudaDeviceSynchronize();
-		if (cfg.verbose) {printf(" ...Done\n");};
+		test_mgpu(h_pixels, h_hist_m, h_timer, &cfg, info);
 
 		// Print results.
 		if (!cfg.quiet) {print_histogram(h_hist_m);};
 
 		// If CPU-computed histogram is available, use it to check results.
 		if (cfg.test_cpu) {
-			hists_ne = compare_histograms(cpu_hist, h_hist_m, ACTIVE_CHANNELS * NUM_BINS);
+			hists_ne = compare_histograms(
+			        cpu_hist, h_hist_m, ACTIVE_CHANNELS * NUM_BINS);
 			if (hists_ne) {
-				printf("Histograms differ!\nChannel %u, bin %u:\nCPU histogram: %3u\nGPU histogram: %3u\n",
-				hists_ne / NUM_BINS, hists_ne % NUM_BINS, cpu_hist[hists_ne], h_hist_m[hists_ne]);
+				printf("Histograms differ!\n"
+				       "Channel %u, bin %u:\n"
+				       "CPU histogram: %3u\n"
+				       "GPU histogram: %3u\n",
+				        hists_ne / NUM_BINS, hists_ne % NUM_BINS, 
+				        cpu_hist[hists_ne], h_hist_m[hists_ne]);
 				re = -2;
 			}
 		}
-		if (cfg.verbose) {printf("Freeing the memory...");};
-		for (int dev_id = 0; dev_id < used_devices; dev_id++) {
-			cudaSetDevice(dev_id);
-			if (cfg.verbose) {printf(" [Device %d]", dev_id);};
-			checkCudaErrors(cudaFree(d_pixels_m[dev_id]));
-			checkCudaErrors(cudaFree(d_hist_m[dev_id]));
-		}
-
-		if (cfg.verbose) {printf(" [CPU]");};
-		free(h_hist_m);
-		if (cfg.verbose) {printf(" ...Done\n");};
 	}
 
 	cudaSetDevice(0);
 	if (cfg.verbose) {printf("Freeing the memory...");};
-	if (cfg.test_gpu) {
-		if (cfg.verbose) {printf(" [Device 0 (default)]");};
-		checkCudaErrors(cudaFree(d_pixels));
-		checkCudaErrors(cudaFree(d_hist));
-		free(h_hist);
-	}
 
 	if (cfg.verbose) {printf(" [CPU]");};
 	free(h_pixels);
 	if (cfg.test_cpu) {
 		free(cpu_hist);
+	}
+	if (cfg.test_gpu) {
+		free(h_hist);
+	}
+	if (cfg.test_mgpu) {
+		free(h_hist_m);
 	}
 	if (cfg.verbose) {printf(" ...Done\n");};
 
