@@ -41,4 +41,4 @@ void run_cpu(
         int height,
         unsigned int *h_hist);
 
-#endif /* HISTOGRAM_CPU_H *
+#endif /* HISTOGRAM_CPU_H */
