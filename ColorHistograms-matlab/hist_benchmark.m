@@ -1,8 +1,9 @@
-function [total_time, time_per_image, time_per_pixel] = hist_benchmark( img, bins, repeat )
+function [total_time, time_per_image, time_per_pixel] = hist_benchmark( img, bit_depth, bins, repeat )
 %HIST_BENCHMARK Measures time to compute histogram of an image
 %   Test is repeated <repeat> times
 %   Arguments:
 %       img - image to process
+%       bit_depth - image bit depth
 %       bins - number of bins in the histogram
 %       repeat - number of times to repeat the test
 %   Returns:
@@ -15,7 +16,7 @@ pixels_computed = W * H * repeat;
 
 tic;
 for i=1:repeat
-    histogram(img, bins);
+    histogram(img, bit_depth, bins);
 end;
 total_time = toc;
 time_per_image = total_time / repeat;

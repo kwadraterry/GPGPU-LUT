@@ -5,14 +5,18 @@ clear, clc, close all;
 large = '../data/spotted_ball_3500.png';
 disp(['Loading ' large]);
 large_image = imread(large);
+large_info = imfinfo(large);
+large_bit_depth = large_info.BitDepth;
 disp(['Processing ' large]);
-[large_total, large_per_image, large_per_pixel] = hist_benchmark(large_image, 16, 4);
+[large_total, large_per_image, large_per_pixel] = hist_benchmark(large_image, large_bit_depth, 16, 4);
 
 small = '../data/bstar100.png';
 disp(['Loading ' small]);
 small_image = imread(small);
+small_info = imfinfo(small);
+small_bit_depth = small_info.BitDepth;
 disp(['Processing ' small]);
-[small_total, small_per_image, small_per_pixel] = hist_benchmark(small_image, 16, 4900);
+[small_total, small_per_image, small_per_pixel] = hist_benchmark(small_image, small_bit_depth, 16, 4900);
 
 % display results in readable format
 fprintf('File                            Total    Per image Per pixel\n');
