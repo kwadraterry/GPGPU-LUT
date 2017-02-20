@@ -1,9 +1,3 @@
-from PIL import Image
-from collections import defaultdict
-import sys
+from color_histogram_cuda import histogram
 
-im = Image.open(sys.argv[1])
-colors = defaultdict(int)
-for pixel in im.getdata():
-    colors[pixel] += 1
-print colors
+print histogram('../data/spotted_ball_3500.png', 16)
