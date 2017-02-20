@@ -11,4 +11,6 @@ Implementation of color histograms using CUDA.
 
 * **ColorHistograms-python** - Python implementation of color histogram computing.
 
+* **data** - Image samples for testing.
+
 * **report** - Source files for generating assignment report (LaTeX).
