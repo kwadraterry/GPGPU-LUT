@@ -32,7 +32,8 @@
 \usepackage{graphicx} % Required to insert images
 \usepackage{listings} % Required for insertion of code
 \usepackage{courier} % Required for the courier font
-\usepackage{lipsum} % Used for inserting dummy 'Lorem ipsum' text into the template
+\usepackage{subcaption}
+\usepackage{url}
 
 % Margins
 \topmargin=-0.45in
@@ -47,7 +48,6 @@
 % Set up the header and footer
 \pagestyle{fancy}
 \lhead{\hmwkAuthorName} % Top left header
-\chead{\hmwkClass\ (\hmwkClassInstructor\ \hmwkClassTime): \hmwkTitle} % Top center head
 \rhead{\firstxmark} % Top right header
 \lfoot{\lastxmark} % Bottom left footer
 \cfoot{} % Bottom center footer
@@ -62,28 +62,18 @@
 %----------------------------------------------------------------------------------------
 
 \definecolor{MyDarkGreen}{rgb}{0.0,0.4,0.0} % This is the color used for comments
-\lstloadlanguages{Perl} % Load Perl syntax for listings, for a list of other languages supported see: ftp://ftp.tex.ac.uk/tex-archive/macros/latex/contrib/listings/listings.pdf
-\lstset{language=Perl, % Use Perl in this example
+\lstloadlanguages{C++}
+\lstset{language=[11]C++,
         frame=single, % Single frame around code
         basicstyle=\small\ttfamily, % Use small true type font
-        keywordstyle=[1]\color{Blue}\bf, % Perl functions bold and blue
-        keywordstyle=[2]\color{Purple}, % Perl function arguments purple
+        keywordstyle=[1]\color{Blue}\bf, % functions bold and blue
+        keywordstyle=[2]\color{Purple}, % function arguments purple
         keywordstyle=[3]\color{Blue}\underbar, % Custom functions underlined and blue
         identifierstyle=, % Nothing special about identifiers                                         
         commentstyle=\usefont{T1}{pcr}{m}{sl}\color{MyDarkGreen}\small, % Comments small dark green courier font
         stringstyle=\color{Purple}, % Strings are purple
         showstringspaces=false, % Don't put marks in string spaces
-        tabsize=5, % 5 spaces per tab
-        %
-        % Put standard Perl functions not included in the default language here
-        morekeywords={rand},
-        %
-        % Put Perl function parameters here
-        morekeywords=[2]{on, off, interp},
-        %
-        % Put user defined functions here
-        morekeywords=[3]{test},
-       	%
+        tabsize=4, % 4 spaces per tab
         morecomment=[l][\color{Blue}]{...}, % Line continuation (...) like blue comment
         numbers=left, % Line numbers on left
         firstnumber=1, % Line numbers start with line 1
@@ -91,66 +81,14 @@
         stepnumber=5 % Line numbers go in steps of 5
 }
 
-% Creates a new command to include a perl script, the first parameter is the filename of the script (without .pl), the second parameter is the caption
-\newcommand{\perlscript}[2]{
-\begin{itemize}
-\item[]\lstinputlisting[caption=#2,label=#1]{#1.pl}
-\end{itemize}
-}
-
-%----------------------------------------------------------------------------------------
-%	DOCUMENT STRUCTURE COMMANDS
-%	Skip this unless you know what you're doing
-%----------------------------------------------------------------------------------------
-
-% Header and footer for when a page split occurs within a problem environment
-\newcommand{\enterProblemHeader}[1]{
-\nobreak\extramarks{#1}{#1 continued on next page\ldots}\nobreak
-\nobreak\extramarks{#1 (continued)}{#1 continued on next page\ldots}\nobreak
-}
-
-% Header and footer for when a page split occurs between problem environments
-\newcommand{\exitProblemHeader}[1]{
-\nobreak\extramarks{#1 (continued)}{#1 continued on next page\ldots}\nobreak
-\nobreak\extramarks{#1}{}\nobreak
-}
-
-\setcounter{secnumdepth}{0} % Removes default section numbers
-\newcounter{homeworkProblemCounter} % Creates a counter to keep track of the number of problems
-
-\newcommand{\homeworkProblemName}{}
-\newenvironment{homeworkProblem}[1][Problem \arabic{homeworkProblemCounter}]{ % Makes a new environment called homeworkProblem which takes 1 argument (custom name) but the default is "Problem #"
-\stepcounter{homeworkProblemCounter} % Increase counter for number of problems
-\renewcommand{\homeworkProblemName}{#1} % Assign \homeworkProblemName the name of the problem
-\section{\homeworkProblemName} % Make a section in the document with the custom problem count
-\enterProblemHeader{\homeworkProblemName} % Header and footer within the environment
-}{
-\exitProblemHeader{\homeworkProblemName} % Header and footer after the environment
-}
-
-\newcommand{\problemAnswer}[1]{ % Defines the problem answer command with the content as the only argument
-\noindent\framebox[\columnwidth][c]{\begin{minipage}{0.98\columnwidth}#1\end{minipage}} % Makes the box around the problem answer and puts the content inside
-}
-
-\newcommand{\homeworkSectionName}{}
-\newenvironment{homeworkSection}[1]{ % New environment for sections within homework problems, takes 1 argument - the name of the section
-\renewcommand{\homeworkSectionName}{#1} % Assign \homeworkSectionName to the name of the section from the environment argument
-\subsection{\homeworkSectionName} % Make a subsection with the custom name of the subsection
-\enterProblemHeader{\homeworkProblemName\ [\homeworkSectionName]} % Header and footer within the environment
-}{
-\enterProblemHeader{\homeworkProblemName} % Header and footer after the environment
-}
-
 %----------------------------------------------------------------------------------------
 %	NAME AND CLASS SECTION
 %----------------------------------------------------------------------------------------
 
-\newcommand{\hmwkTitle}{Assignment\ \#1} % Assignment title
-\newcommand{\hmwkDueDate}{Monday,\ January\ 1,\ 2012} % Due date
-\newcommand{\hmwkClass}{COMPSCI\ 101} % Course/class
-\newcommand{\hmwkClassTime}{10:30am} % Class/lecture time
-\newcommand{\hmwkClassInstructor}{Jones} % Teacher/lecturer
-\newcommand{\hmwkAuthorName}{John Smith} % Your name
+\newcommand{\hmwkTitle}{Color histogram} % Assignment title
+\newcommand{\hmwkDueDate}{Tuesday,\ February\ 28,\ 2017} % Due date
+\newcommand{\hmwkClass}{BM40A1400 GPGPU course project} % Course/class
+\newcommand{\hmwkAuthorName}{Maria Glukhova \& 500503 Ekaterina Nepovinnykh} % Your name
 
 %----------------------------------------------------------------------------------------
 %	TITLE PAGE
@@ -160,7 +98,6 @@
 \vspace{2in}
 \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
 \normalsize\vspace{0.1in}\small{Due\ on\ \hmwkDueDate}\\
-\vspace{0.1in}\large{\textit{\hmwkClassInstructor\ \hmwkClassTime}}
 \vspace{3in}
 }
 
@@ -183,36 +120,222 @@
 \tableofcontents
 \newpage
 
-%----------------------------------------------------------------------------------------
-%	PROBLEM 1
-%----------------------------------------------------------------------------------------
+\section{Introduction}
+The goal of this project is to create a color histogram for provided image using
+GPGPU and CUDA \cite{CUDA}.
 
-% To have just one problem per page, simply put a \clearpage after each problem
+This course project includes the following tasks:
 
-\begin{homeworkProblem}
-Listing shows a Perl script \cite{CUDA}.
+\begin{enumerate}
+\item GPU implementation of color histogram \cite{cudahist}
+\item Multiple GPU support
+\item CPU implementation for performance comparison
+\item Matlab implementation to confirm that GPU implementation is faster
+\item Python wrapper using PyCuda \cite{pycuda}
+\end{enumerate}
 
-\lipsum[1]
-\end{homeworkProblem}
+The work was done in a public repository on GitHub (see \cite{gh}).
 
-%----------------------------------------------------------------------------------------
-%	PROBLEM 2
-%----------------------------------------------------------------------------------------
+\section{CUDA Implementation}
+CUDA-based computation of color histogram is performed in two steps:
 
-\begin{homeworkProblem}
-\lipsum[2]
+\begin{enumerate}
+\item Gather information into partial histograms using atomic counters
+\item Accumulate partial histograms into one resulting histogram
+\end{enumerate}
 
-\problemAnswer{
-\begin{center}
-\end{center}
+Both steps are performed as GPU kernels using one intermediate GPU memory buffer
+and the result is then copied back into host memory.
 
-\lipsum[3-5]
-}
-\end{homeworkProblem}
+\subsection{First-pass kernel}
+Listing~\ref{lst:histogram_gmem_atomics} shows first-pass histogram kernel.
+It gathers the information from a part of the image to the partial hisogram.
+Part of the image is defined by block and grid size
+("part of image" is not a continious patch here, rather every n-th pixel).
+The partial histogram is stored in global memory defined by "out".
+Every block has a group number (g) assigned to it, and it treats part of
+global memory (from out + g * NUM\_PARTS and every nt bits, where nt is the size (x*y)
+of the grid) as its own, storing the histogram of its part of the image here.
 
+What happens in the kernel is:
+
+the blocks' own bits of global memory get initialized with zeros.
+
+Every corresponding (assigned to this block) pixel get visited, and:
+
+\begin{enumerate}
+\item Pixel is decoded into several (ACTIVE\_CHANNELS) colors.
+\item These values are binned to the desired number of bins (NUM\_BINS).
+\item Corresponding values in a partial histogram (part of global memory) get updated.
+\end{enumerate}
+
+Parts 1 and 2 are implemented in DecodePixel (see listing~\ref{lst:DecodePixel}).
+
+\subsection{Accumulating partial histograms}
+Listing~\ref{lst:histogram_gmem_accum} shows \textbf{histogram\_gmem\_accum} kernel
+which gathers partial histograms from global memory (in) into output histogram.
+
+Partial histograms are expected to be stored in a part of global memory of
+n * ACTIVE\_CHANNELS * NUM\_BINS * sizeof(uint) size.
+It is expected that every nth bit belongs to the same partial histogram
+(the k-th histogram stored in k, n + k, 2 * n + k, ... elements).
+
+Every block running the kernel has a particular bin on the output histogram it is
+responsible for. It gathers information about this bin from every partial histogram,
+and sums it up.
+
+\subsection{CPU wrapper for kernel execution}
+Listing~\ref{lst:run_gmem_atomics} shows a function \textbf{run\_gmem\_atomics}
+which is a CPU wrapper for the histogram computation. It assigns the blocks,
+allocates the memory for partial histograms, computes them using
+\textbf{histogram\_gmem\_atomics} (see listing~\ref{lst:histogram_gmem_atomics})
+and accumulates with \textbf{histogram\_gmem\_accum}
+(see listing~\ref{lst:histogram_gmem_accum}).
+
+\subsection{Multiple GPU support}
+Multiple GPU version is implemented similarly to single GPU one, but with extra
+parallelization based on color channel. As such, every device has a specific color
+channel assigned to it. Listings \ref{lst:histogram_gmem_atomics1} and
+\ref{lst:run_multigpu} show implementation of multi-GPU color histogram computation.
+
+\section{Matlab implementation}
+Listing~\ref{lst:matlab_hist} shows a matlab function that computes color histogram
+of an input image. The function accepts the image itself, bit depth of an image and
+the number of bins in the resulting histogram. The function performs the necessary
+computation in exactly \(W*H*C\) consecutive steps, where:
+
+\begin{description}
+\item [W] is the width of an image in pixels
+\item [H] is the height of an image in pixels
+\item [C] is the number of color channels in an image
+\end{description}
+
+As such, among the images with the same number of color channels and the same color
+depth this implementation is expected to take linear amount of time relative to
+the total numer of pixels in an image.
+
+\section{Python wrapper}
+As a part of the task, python wrapper using exising C++-based CUDA code was
+implemented. The relevant part of the wrapper is presented in
+listing~\ref{lst:python_wrapper}. The algorithm is essentially the same as with C++
+version, except Python wrapper requires convertion of native numeric types to their
+numpy equivalent in order to preserve memory layout for GPU kernels.
+
+\section{Experiments}
+Experiments were conducted on LUT GPGPU cluster in order to determite runtime
+characteristics of various implementations on the same set of images. The goal is
+to assert that GPGPU implementation is faster on larger images than both C++ and
+Matlab implementations. Another goal is to confirm that CPU implementation is linear
+relative to total number of pixels in an image while GPU is sub-linear.
+
+Fig.~\ref{fig:plasma0500}, fig.~\ref{fig:bstar100} and
+fig.~\ref{fig:spotted_ball_3500} show examples of images that were used during testing.
+Several image samples have been prepared with different sizes and color depths in
+order to mesure performance of all implemented methods.
+
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.3\textwidth}
+        \includegraphics[width=\textwidth]{../data/plasma0500.png}
+        \caption{plasma0500.png test image (size: 500x500px)}
+        \label{fig:plasma0500}
+\end{subfigure}
+~
+\begin{subfigure}[b]{0.3\textwidth}
+        \includegraphics[width=\textwidth]{../data/spotted_ball_3500.png}
+        \caption{spotted\_ball\_3500.png test image (size: 3500x3500px)}
+        \label{fig:spotted_ball_3500}
+\end{subfigure}
+~
+\begin{subfigure}[b]{0.3\textwidth}
+        \includegraphics[width=\textwidth]{../data/bstar100.png}
+        \caption{bstar100.png test image (size: 100x100px)}
+        \label{fig:bstar100}
+\end{subfigure}
+\caption{Test images}
+\label{fig:test_images}
+\end{figure}
+
+Fig.~\ref{fig:run_plot} shows the plot that compares different implementations total run time relative
+to size of an input image. The plot clearly shows that CPU-based implementations
+have linear relative to total number of pixels while GPGPU-based implementations are
+sub-linear. The best performance was achieved on single-GPU implementation, probably
+due to syncronization between different devices on multi-GPU version.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{./figures/runtime_log_with_matlab.png}
+\caption{Comparison of performance between different implementations of color histogram}
+\label{fig:run_plot}
+\end{figure}
+
+% ----------------------------------------------------------------------------------
+%                                  CODE LISTINGS
+% ----------------------------------------------------------------------------------
+\clearpage
+\section{Code listings}
+\lstinputlisting[
+        caption=First-pass histogram kernel,
+        label=lst:histogram_gmem_atomics,
+        language=C++,
+        firstline=51,
+        lastline=100
+]{../ColorHistograms-cuda/src/histogram_gpu.cu}
+\lstinputlisting[
+        caption=Decode uchar4 pixel into bins,
+        label=lst:DecodePixel,
+        language=C++,
+        firstline=33,
+        lastline=49
+]{../ColorHistograms-cuda/src/histogram_gpu.cu}
+\lstinputlisting[
+        caption=Accumulate partial histograms into global one,
+        label=lst:histogram_gmem_accum,
+        language=C++,
+        firstline=102,
+        lastline=124
+]{../ColorHistograms-cuda/src/histogram_gpu.cu}
+\clearpage
+\lstinputlisting[
+        caption=CPU Wrapper for GPU histogram computation,
+        label=lst:run_gmem_atomics,
+        language=C++,
+        firstline=126,
+        lastline=165
+]{../ColorHistograms-cuda/src/histogram_gpu.cu}
+\clearpage
+\lstinputlisting[
+        caption=First pass histogram kernel for multiple GPUs,
+        label=lst:histogram_gmem_atomics1,
+        language=C++,
+        firstline=168,
+        lastline=212
+]{../ColorHistograms-cuda/src/histogram_gpu.cu}
+\clearpage
+\lstinputlisting[
+        caption=CPU Wrapper for multiple GPUs histogram computation,
+        label=lst:run_multigpu,
+        language=C++,
+        firstline=215,
+        lastline=254
+]{../ColorHistograms-cuda/src/histogram_gpu.cu}
+\clearpage
+\lstinputlisting[
+        caption=Matlab function for computing color histogram of an image,
+        label=lst:matlab_hist,
+        language=Matlab,
+        firstline=1,
+        lastline=27
+]{../ColorHistograms-matlab/histogram.m}
+\lstinputlisting[
+        caption=Python wrapper that runs CUDA-based color histogram calculation,
+        label=lst:python_wrapper,
+        language=Python,
+        firstline=7,
+        lastline=27
+]{../ColorHistograms-python/color_histogram_cuda.py}
+
+\clearpage
 \bibliographystyle{unsrt}
 \bibliography{report.bib}
-
-%----------------------------------------------------------------------------------------
-
 \end{document}

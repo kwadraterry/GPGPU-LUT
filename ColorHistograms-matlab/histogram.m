@@ -2,7 +2,7 @@ function hist = histogram( img, bit_depth, num_bins )
 %HISTOGRAM Computes c-dimensional color histogram of an image
 %   c is number of channels in an image
 %   arguments:
-%      img - input image matrix (w*h*c uint8)
+%      img - input image matrix (w*h*c)
 %      bit_depth - input image bit depth
 %      num_bins - number of bins in the histogram
 %   return hist - num_bins*c color histogram

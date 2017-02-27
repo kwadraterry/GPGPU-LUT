@@ -67,8 +67,8 @@ __global__ void histogram_gmem_atomics(
     int nx = blockDim.x * gridDim.x;
     int ny = blockDim.y * gridDim.y;
 
-    // Threads in workgroup.
-    int t = threadIdx.x + threadIdx.y * blockDim.x; // thread index in workgroup, linear in 0..nt-1
+    // thread index in workgroup, linear in 0..nt-1
+    int t = threadIdx.x + threadIdx.y * blockDim.x;
     int nt = blockDim.x * blockDim.y; // total threads in workgroup
 
     // Group index in 0..ngroups-1.
@@ -179,8 +179,8 @@ __global__ void histogram_gmem_atomics1(
     int nx = blockDim.x * gridDim.x;
     int ny = blockDim.y * gridDim.y;
 
-    // Threads in the workgroup.
-    int t = threadIdx.x + threadIdx.y * blockDim.x; // thread index in workgroup, linear in 0..nt-1
+    // thread index in workgroup, linear in 0..nt-1
+    int t = threadIdx.x + threadIdx.y * blockDim.x;
     int nt = blockDim.x * blockDim.y; // total threads in workgroup
 
     // Group index in 0..ngroups-1.
